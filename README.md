@@ -7,7 +7,11 @@ A small FastAPI service for registration, authentication, catalogue management a
 `uvicorn app.main:app --host 127.0.0.1 --port 8000`
 
 ## Existing tests
-`pytest -q`
+Unit suite with line coverage:
+`python -m pytest tests/unit --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=50`
+
+Whole suite:
+`python -m pytest`
 
 ## Deliberate analysis gaps
-The suite exercises individual routes through FastAPI TestClient. It does not yet prove a real HTTP customer purchase journey from a separately running service, nor a browser/storefront journey. Important untested behaviour includes invalid login, duplicate registration, stock decrement and computed order totals across the complete workflow.
+The suite has two layers: a unit suite that drives the seven handlers in process, and `tests/test_routes.py`, which remains the only evidence for the HTTP envelope of status codes produced through request validation and response serialisation. Neither layer proves a real HTTP customer purchase journey from a separately running service, nor a browser/storefront journey.
