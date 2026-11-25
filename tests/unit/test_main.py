@@ -24,6 +24,9 @@ def test_create_order_decrements_stock_and_computes_total():
     assert result["product_id"] == product["id"]
     assert orders[result["id"]] == result
     assert products[product["id"]]["stock"] == 1
+    half_cent_product = _create_product(price=10.005, stock=1)
+    half_cent_order = create_order(OrderRequest(product_id=half_cent_product["id"], quantity=1))
+    assert half_cent_order["total"] == 10.01
 
 def test_create_order_allows_full_stock_depletion():
     product = _create_product(price=25.0, stock=4)
@@ -53,7 +56,7 @@ def test_create_order_rejects_non_positive_quantity():
 
 def test_create_order_rejects_unknown_product():
     with pytest.raises(HTTPException) as excinfo:
-        create_order(OrderRequest(product_id="missing", quantity=1))
+        create_order(OrderRequest(product_id="missing", quantity=0))
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "product not found"
     assert orders == {}
@@ -96,7 +99,12 @@ def test_login_rejects_wrong_password():
 def test_get_order_returns_created_order():
     product = _create_product()
     order = create_order(OrderRequest(product_id=product["id"], quantity=2))
-    assert get_order(order["id"]) == order
+    assert get_order(order["id"]) == {
+        "id": order["id"],
+        "product_id": product["id"],
+        "quantity": 2,
+        "total": 50.0,
+    }
 
 def test_get_order_rejects_unknown_order():
     with pytest.raises(HTTPException) as excinfo:
@@ -115,8 +123,10 @@ def test_list_products_returns_products_in_insertion_order():
     first = _create_product()
     second = _create_product(name="Mouse", price=15.5, stock=2)
     result = list_products()
-    assert [product["id"] for product in result] == [first["id"], second["id"]]
-    assert set(result[0]) == {"id", "name", "price", "stock"}
+    assert result == [
+        {"id": first["id"], "name": "Keyboard", "price": 25.0, "stock": 8},
+        {"id": second["id"], "name": "Mouse", "price": 15.5, "stock": 2},
+    ]
 
 def test_list_products_returns_empty_list_for_empty_store():
     assert list_products() == []
